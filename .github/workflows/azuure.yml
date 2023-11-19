@@ -9,17 +9,17 @@ jobs:
   build:
     runs-on: EIS-linux-premium-runner
 
-    env:
-      AZCOPY_SPA_CLIENT_SECRET: ${{ secrets.RQ_QUALITY_OWNER_NON_PROD }}
-      AZURE: "{}"
-      DEPLOY_INPUT: "{}"
-      GIT_CHANGE_LIST: "[]"
-      #GitHub Actions workflows are triggered based on events and don't take input parameters creating env variable
-      APPROVERS: ''
+    # env:
+    #   AZCOPY_SPA_CLIENT_SECRET: ${{ secrets.RQ_QUALITY_OWNER_NON_PROD }}
+    #   AZURE: "{}"
+    #   DEPLOY_INPUT: "{}"
+    #   GIT_CHANGE_LIST: "[]"
+    #   #GitHub Actions workflows are triggered based on events and don't take input parameters creating env variable
+    #   APPROVERS: ''
 
-    defaults:
-      run:
-        shell: bash
+    # defaults:
+    #   run:
+    #     shell: bash
     # inputs:
     #   force-deploy-cloud:
     #     description: 'Option to force deployment to Azure non-prod subscription'
