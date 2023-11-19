@@ -129,6 +129,3 @@ jobs:
               retry_count=$((retry_count-1))
             fi
           done
-       with:
-         inputs:
-           force-deploy-cloud: ${{ github.event.inputs.force-deploy-cloud }}
