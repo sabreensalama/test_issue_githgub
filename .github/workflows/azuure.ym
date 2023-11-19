@@ -1,0 +1,201 @@
+name: build_and_deploy
+
+on:
+  push:
+    branches:
+      - '*'
+
+jobs:
+  build:
+    runs-on: EIS-linux-premium-runner
+
+    env:
+      AZCOPY_SPA_CLIENT_SECRET: ${{ secrets.RQ_QUALITY_OWNER_NON_PROD }}
+      AZURE: "{}"
+      DEPLOY_INPUT: "{}"
+      GIT_CHANGE_LIST: "[]"
+      #GitHub Actions workflows are triggered based on events and don't take input parameters creating env variable
+      APPROVERS: ''
+
+    defaults:
+      run:
+        shell: bash
+    inputs:
+      force-deploy-cloud:
+        description: 'Option to force deployment to Azure non-prod subscription'
+        default: ${{ false }}    
+      options:
+        stash-preserve-build-count: ${{ env.PIPELINE_PRESERVE_BUILD_STASH_COUNT }}
+        quiet-period: ${{ env.PIPELINE_QUIET_PERIOD }}
+        timestamps: true
+        concurrent: 1
+        build-discarder:
+          num-to-keep-str: ${{ env.PIPELINE_BUILD_DISCARDER_COUNT_THRESHOLD }}
+          days-to-keep-str: ${{ env.PIPELINE_BUILD_DISCARDER_DAY_THRESHOLD }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Option to force deployment to azure non-prod subscription
+        run: |
+          echo "FORCE_DEPLOY_CLOUD=${{ inputs.force-deploy-cloud }}"        
+
+      - name: Set up environment
+        run: |
+          timestamps() {
+              echo "Setting up environment..."
+              echo "GIT_COMMIT=$(git rev-parse HEAD)" >> $GITHUB_ENV
+          }
+
+      - name: Read environment variables from pipeline.yml
+        run: |
+          envFile="../pipeline.yml"
+          if [ -f "$envFile" ]; then
+            envVars=$(cat "$envFile")
+            while IFS= read -r line; do
+              key=$(echo "$line" | cut -d '=' -f1)
+              value=$(echo "$line" | cut -d '=' -f2-)
+              echo "${key}=${value}" >> $GITHUB_ENV
+            done <<< "$envVars"
+          else
+            echo "File not found: $envFile"
+            exit 1
+          fi
+
+      - name: Set up environment variables
+        run: echo "APPROVERS=${{ env.APPROVERS }}" >> $GITHUB_ENV
+
+      - name: Set AZURE and DEPLOY_INPUT variables
+        run: |
+          echo "Setting AZURE and DEPLOY_INPUT variables..."
+          echo "AZURE=${{ env.AZURE }}" >> $GITHUB_ENV
+          echo "DEPLOY_INPUT=${{ env.DEPLOY_INPUT }}" >> $GITHUB_ENV
+
+      - name: Archive Jenkinsfile
+        run: |
+          echo "Archiving Jenkinsfile..."          
+
+      - name: git info
+        run: |
+          echo "Environment variables:"
+          env | sort
+          echo "Current working directory: $PWD"
+          echo "FORCE_DEPLOY_CLOUD: ${{ env.FORCE_DEPLOY_CLOUD }}"
+
+      - name: Set up JDK 11
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'temurin'
+          java-version: '11'
+
+      - name: Run Maven build with Sonar scan
+        run: |
+          mvn clean install sonar:sonar -B \
+            -Dmaven.test.skip=false \
+            -Dsonar.host.url=${{ env.SONAR_HOST_URL }} \
+            -Dsonar.login=${{ secrets.SONAR_TOKEN }} \
+            -Dsonar.projectKey=${{ env.SONAR_PROJECT_KEY }} \
+            -Dsonar.projectName=${{ env.SONAR_PROJECT_NAME }} \
+            -Dsonar.projectVersion=${{ env.SONAR_PROJECT_VERSION }} \
+            -Dsonar.java.source=11 \
+            -Dsonar.java.target=11
+      
+      - name: Archive artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: jars
+          path: target/*.zip          
+
+      - name: Determine if cloud deployment will happen
+        id: check-deployment
+        run: |
+          echo "::set-output name=deploy::$(if [ ${{ github.event_name }} == 'push' ] && [ ${{ github.ref }} == 'refs/heads/main' ]; then echo 'true'; elif [ ${{ github.event_name }} == 'push' ] && [[ "${{ github.ref }}" =~ refs/tags/${{ env.GIT_TAG_REGEX_STRING }} ]]; then echo 'true'; elif [ ${{ github.event_name }} == 'workflow_run' ] && [ ${{ github.event.workflow_run.event == 'push' }} ] && [ ${{ github.event.workflow_run.head_branch }} == 'main' ]; then echo 'true'; elif [ ${{ github.event_name }} == 'workflow_run' ] && [ ${{ github.event.workflow_run.event == 'push' }} ] && [[ "${{ github.event.workflow_run.head_branch }}" =~ refs/tags/${{ env.GIT_TAG_REGEX_STRING }} ]]; then echo 'true'; elif [ ${{ github.event_name }} == 'workflow_run' ] && [ ${{ github.event.workflow_run.event == 'manual' }} ] && [ ${{ github.event.workflow_run.conclusion }} == 'success' ]; then echo 'true'; elif [ ${{ github.event_name }} == 'workflow_run' ] && [ ${{ github.event.workflow_run.event == 'schedule' }} ] && [ ${{ github.event.workflow_run.conclusion }} == 'success' ]; then echo 'true'; elif [ ${{ github.event_name }} == 'workflow_run' ] && [ ${{ github.event.workflow_run.event == 'workflow_dispatch' }} ] && [ ${{ github.event.workflow_run.conclusion }} == 'success' ]; then echo 'true'; else echo 'false'; fi)"
+
+      - name: JAR deployment (non-prod)
+        if: |
+          github.event_name == 'push' &&
+          (
+            github.ref == 'refs/heads/${{ env.MAIN_BRANCH_NAME }}' ||
+            startsWith(github.ref, 'refs/tags/') && contains(github.ref, env.GIT_TAG_REGEX_STRING) ||
+            env.FORCE_DEPLOY_CLOUD == 'true'
+          )
+        run: |
+          echo "Deploying JAR (non-prod)"
+          
+          # Adding retry logic with a bash loop
+          retry_count=3
+          retry_delay=10
+          until [ $retry_count -le 0 ]; do
+            echo "Running azcopyExecstaticstorage, attempts left: $retry_count"
+            
+            docker run --rm -v $(pwd):/workspace -w /workspace docker-terraform-slave bash -c 'azcopyExecstaticstorage'
+            
+            # Check if the command was successful
+            if [ $? -eq 0 ]; then
+              echo "Deployment successful!"
+              break
+            else
+              echo "Deployment failed. Retrying in $retry_delay seconds..."
+              sleep $retry_delay
+              retry_count=$((retry_count-1))
+            fi
+          done
+       with:
+         inputs:
+           force-deploy-cloud: ${{ github.event.inputs.force-deploy-cloud }}
+      - name: Determine if approval is needed
+        id: check-approval
+        run: echo "::set-output name=approval-needed::$(if [[ "${{ github.ref }}" =~ refs/tags/${{ env.GIT_TAG_REGEX_STRING }} ]]; then echo 'true'; else echo 'false'; fi)"
+
+      - name: Prod deployment approval
+        if: steps.check-approval.outputs.approval-needed == 'true'
+        run: |
+          echo "Sending approval notification email for production deployment"
+          # approval logic to be determined and need to add
+
+          echo "Waiting for approval..."
+
+      - name: Determine if production deployment is needed
+        id: check-deployment
+        run: echo "deploy-prod=$(if [[ "${{ github.event_name }}" == 'push' && "${{ github.ref }}" =~ refs/tags/${{ env.GIT_TAG_REGEX_STRING }} ]]; then echo 'true'; else echo 'false'; fi)" >> $GITHUB_ENV
+
+      - name: Determine if approval is confirmed
+        id: check-approval
+        run: echo "approval-confirmed=$(if [[ "${{ env.PROD_DEPLOYMENT_APPROVAL }}" == 'true' ]]; then echo 'true'; else echo 'false'; fi)" >> $GITHUB_ENV
+
+      - name: Prod deployment
+        if: |
+          github.event_name == 'push' &&
+          startsWith(github.ref, 'refs/tags/') &&
+          contains(github.ref, env.GIT_TAG_REGEX_STRING) &&
+          env.PROD_DEPLOYMENT_APPROVAL == 'true' &&
+          env.approval-confirmed == 'true'
+        run: |
+          echo "Deploying to production"
+          # Add deployment steps as needed
+
+      - name: Send approval notification email
+        if: |
+          github.event_name == 'push' &&
+          startsWith(github.ref, 'refs/tags/') &&
+          contains(github.ref, env.GIT_TAG_REGEX_STRING) &&
+          env.PROD_DEPLOYMENT_APPROVAL == 'true' &&
+          env.approval-confirmed == 'true'
+        run: |
+          echo "Sending approval notification email"
+          # Add notification steps as needed
+          echo "SUCCESS: Deployment of ${env.MAVEN_JAR_PACKAGE_NAME} version ${env.CURRENT_VERSION} to production"
+          
+      - name: Archive artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: jars
+          path: deploy-*/*
+
+
+
+
+
+
+
