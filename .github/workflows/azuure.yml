@@ -15,7 +15,7 @@ jobs:
       GIT_CHANGE_LIST: "[]"
       #GitHub Actions workflows are triggered based on events and don't take input parameters creating env variable
       APPROVERS: ''
-      force-deploy-cloud: ${{ false }} 
+      force-deploy-cloud: "${{ false }}"
 
     defaults:
       run:
