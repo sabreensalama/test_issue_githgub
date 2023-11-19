@@ -102,7 +102,7 @@ jobs:
         run: |
           echo "::set-output name=deploy::$(if [ ${{ github.event_name }} == 'push' ] && [ ${{ github.ref }} == 'refs/heads/main' ]; then echo 'true'; elif [ ${{ github.event_name }} == 'push' ] && [[ "${{ github.ref }}" =~ refs/tags/${{ env.GIT_TAG_REGEX_STRING }} ]]; then echo 'true'; elif [ ${{ github.event_name }} == 'workflow_run' ] && [ ${{ github.event.workflow_run.event == 'push' }} ] && [ ${{ github.event.workflow_run.head_branch }} == 'main' ]; then echo 'true'; elif [ ${{ github.event_name }} == 'workflow_run' ] && [ ${{ github.event.workflow_run.event == 'push' }} ] && [[ "${{ github.event.workflow_run.head_branch }}" =~ refs/tags/${{ env.GIT_TAG_REGEX_STRING }} ]]; then echo 'true'; elif [ ${{ github.event_name }} == 'workflow_run' ] && [ ${{ github.event.workflow_run.event == 'manual' }} ] && [ ${{ github.event.workflow_run.conclusion }} == 'success' ]; then echo 'true'; elif [ ${{ github.event_name }} == 'workflow_run' ] && [ ${{ github.event.workflow_run.event == 'schedule' }} ] && [ ${{ github.event.workflow_run.conclusion }} == 'success' ]; then echo 'true'; elif [ ${{ github.event_name }} == 'workflow_run' ] && [ ${{ github.event.workflow_run.event == 'workflow_dispatch' }} ] && [ ${{ github.event.workflow_run.conclusion }} == 'success' ]; then echo 'true'; else echo 'false'; fi)"
 
- - name: JAR deployment (non-prod)
+      - name: JAR deployment (non-prod)
         if: |
           github.event_name == 'push' &&
           (
