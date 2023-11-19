@@ -148,3 +148,31 @@ jobs:
       - name: Determine if approval is confirmed
         id: check-approval-confirmed
         run: echo "approval-confirmed=$(if [[ "${{ env.PROD_DEPLOYMENT_APPROVAL }}" == 'true' ]]; then echo 'true'; else echo 'false'; fi)" >> $GITHUB_ENV
+      - name: Prod deployment
+        if: |
+          github.event_name == 'push' &&
+          startsWith(github.ref, 'refs/tags/') &&
+          contains(github.ref, env.GIT_TAG_REGEX_STRING) &&
+          env.PROD_DEPLOYMENT_APPROVAL == 'true' &&
+          env.approval-confirmed == 'true'
+        run: |
+          echo "Deploying to production"
+          # Add deployment steps as needed
+
+      - name: Send approval notification email
+        if: |
+          github.event_name == 'push' &&
+          startsWith(github.ref, 'refs/tags/') &&
+          contains(github.ref, env.GIT_TAG_REGEX_STRING) &&
+          env.PROD_DEPLOYMENT_APPROVAL == 'true' &&
+          env.approval-confirmed == 'true'
+        run: |
+          echo "Sending approval notification email"
+          # Add notification steps as needed
+          echo "SUCCESS: Deployment of ${env.MAVEN_JAR_PACKAGE_NAME} version ${env.CURRENT_VERSION} to production"
+          
+      - name: Archive artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: jars
+          path: deploy-*/*
