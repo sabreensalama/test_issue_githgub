@@ -8,30 +8,6 @@ on:
 jobs:
   build:
     runs-on: EIS-linux-premium-runner
-
-    # env:
-    #   AZCOPY_SPA_CLIENT_SECRET: ${{ secrets.RQ_QUALITY_OWNER_NON_PROD }}
-    #   AZURE: "{}"
-    #   DEPLOY_INPUT: "{}"
-    #   GIT_CHANGE_LIST: "[]"
-    #   #GitHub Actions workflows are triggered based on events and don't take input parameters creating env variable
-    #   APPROVERS: ''
-
-    # defaults:
-    #   run:
-    #     shell: bash
-    # inputs:
-    #   force-deploy-cloud:
-    #     description: 'Option to force deployment to Azure non-prod subscription'
-    #     default: ${{ false }}    
-    #   options:
-    #     stash-preserve-build-count: ${{ env.PIPELINE_PRESERVE_BUILD_STASH_COUNT }}
-    #     quiet-period: ${{ env.PIPELINE_QUIET_PERIOD }}
-    #     timestamps: true
-    #     concurrent: 1
-    #     build-discarder:
-    #       num-to-keep-str: ${{ env.PIPELINE_BUILD_DISCARDER_COUNT_THRESHOLD }}
-    #       days-to-keep-str: ${{ env.PIPELINE_BUILD_DISCARDER_DAY_THRESHOLD }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
@@ -198,3 +174,27 @@ jobs:
 
 
 
+
+    # env:
+    #   AZCOPY_SPA_CLIENT_SECRET: ${{ secrets.RQ_QUALITY_OWNER_NON_PROD }}
+    #   AZURE: "{}"
+    #   DEPLOY_INPUT: "{}"
+    #   GIT_CHANGE_LIST: "[]"
+    #   #GitHub Actions workflows are triggered based on events and don't take input parameters creating env variable
+    #   APPROVERS: ''
+
+    # defaults:
+    #   run:
+    #     shell: bash
+    # inputs:
+    #   force-deploy-cloud:
+    #     description: 'Option to force deployment to Azure non-prod subscription'
+    #     default: ${{ false }}    
+    #   options:
+    #     stash-preserve-build-count: ${{ env.PIPELINE_PRESERVE_BUILD_STASH_COUNT }}
+    #     quiet-period: ${{ env.PIPELINE_QUIET_PERIOD }}
+    #     timestamps: true
+    #     concurrent: 1
+    #     build-discarder:
+    #       num-to-keep-str: ${{ env.PIPELINE_BUILD_DISCARDER_COUNT_THRESHOLD }}
+    #       days-to-keep-str: ${{ env.PIPELINE_BUILD_DISCARDER_DAY_THRESHOLD }}
