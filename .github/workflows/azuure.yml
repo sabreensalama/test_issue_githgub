@@ -1,12 +1,12 @@
-name: build_and_deploy
-
+name: push and Deploy to ECR
 on:
   push:
-    branches:
-      - '*'
-
+    branches: 
+    - " * "
+  
 jobs:
-  build:
+  build-push-deploy:
+    name: build-push-deploy
     runs-on: EIS-linux-premium-runner
     steps:
       - name: Checkout repository
