@@ -20,18 +20,18 @@ jobs:
     defaults:
       run:
         shell: bash
-    inputs:
-      force-deploy-cloud:
-        description: 'Option to force deployment to Azure non-prod subscription'
-        default: ${{ false }}    
-      options:
-        stash-preserve-build-count: ${{ env.PIPELINE_PRESERVE_BUILD_STASH_COUNT }}
-        quiet-period: ${{ env.PIPELINE_QUIET_PERIOD }}
-        timestamps: true
-        concurrent: 1
-        build-discarder:
-          num-to-keep-str: ${{ env.PIPELINE_BUILD_DISCARDER_COUNT_THRESHOLD }}
-          days-to-keep-str: ${{ env.PIPELINE_BUILD_DISCARDER_DAY_THRESHOLD }}
+    # inputs:
+    #   force-deploy-cloud:
+    #     description: 'Option to force deployment to Azure non-prod subscription'
+    #     default: ${{ false }}    
+    #   options:
+    #     stash-preserve-build-count: ${{ env.PIPELINE_PRESERVE_BUILD_STASH_COUNT }}
+    #     quiet-period: ${{ env.PIPELINE_QUIET_PERIOD }}
+    #     timestamps: true
+    #     concurrent: 1
+    #     build-discarder:
+    #       num-to-keep-str: ${{ env.PIPELINE_BUILD_DISCARDER_COUNT_THRESHOLD }}
+    #       days-to-keep-str: ${{ env.PIPELINE_BUILD_DISCARDER_DAY_THRESHOLD }}
 
     steps:
       - name: Checkout repository
