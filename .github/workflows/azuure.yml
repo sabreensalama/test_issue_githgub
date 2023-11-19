@@ -32,7 +32,6 @@ jobs:
     #     build-discarder:
     #       num-to-keep-str: ${{ env.PIPELINE_BUILD_DISCARDER_COUNT_THRESHOLD }}
     #       days-to-keep-str: ${{ env.PIPELINE_BUILD_DISCARDER_DAY_THRESHOLD }}
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
