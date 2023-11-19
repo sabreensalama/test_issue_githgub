@@ -17,11 +17,9 @@ jobs:
       APPROVERS: ''
       force-deploy-cloud: ${{ false }} 
 
-
     defaults:
       run:
         shell: bash
-
 
     steps:
       - name: Checkout repository
