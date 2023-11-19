@@ -129,3 +129,22 @@ jobs:
               retry_count=$((retry_count-1))
             fi
           done
+      - name: Determine if approval is needed
+        id: check-approval-needed
+        run: echo "::set-output name=approval-needed::$(if [[ "${{ github.ref }}" =~ refs/tags/${{ env.GIT_TAG_REGEX_STRING }} ]]; then echo 'true'; else echo 'false'; fi)"
+
+      - name: Prod deployment approval
+        if: steps.check-approval-needed.outputs.approval-needed == 'true'
+        run: |
+          echo "Sending approval notification email for production deployment"
+          # approval logic to be determined and need to add
+
+          echo "Waiting for approval..."
+
+      - name: Determine if production deployment is needed
+        id: check-deployment
+        run: echo "deploy-prod=$(if [[ "${{ github.event_name }}" == 'push' && "${{ github.ref }}" =~ refs/tags/${{ env.GIT_TAG_REGEX_STRING }} ]]; then echo 'true'; else echo 'false'; fi)" >> $GITHUB_ENV
+
+      - name: Determine if approval is confirmed
+        id: check-approval-confirmed
+        run: echo "approval-confirmed=$(if [[ "${{ env.PROD_DEPLOYMENT_APPROVAL }}" == 'true' ]]; then echo 'true'; else echo 'false'; fi)" >> $GITHUB_ENV
